@@ -1,12 +1,11 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class CharacterController : MonoBehaviour
 {
-    private NavMeshAgent agent;
-    [SerializeField] private Transform spawn_point;
+    [SerializeField] private Transform[] spawnPlatform;
     [SerializeField] private GameObject targetPref;
+    private NavMeshAgent agent;
     private GameObject target;
 
     void Start()
@@ -16,28 +15,42 @@ public class CharacterController : MonoBehaviour
 
     void Update()
     {
-        if (target == null)
-        {
-            target = TargetSpawn();
-            agent.destination = target.transform.position;
-        }
+        CheckAndUseTarget();
 
-        if ((Input.GetKeyDown(KeyCode.Alpha1)) ||  Vector3.Distance(transform.position, target.transform.position) < 1)   //!!!!!!!!!
+        if (Vector3.Distance(transform.position, target.transform.position) < 3)
         {
             Destroy(target);
         }
     }
 
-
-        private GameObject TargetSpawn()
+    private GameObject TargetSpawn(int spawnTransformNum)
     {
-        float volumeX = spawn_point.transform.localScale.x / 2;
-        float volumeZ = spawn_point.transform.localScale.z / 2;
+        float volumeX = spawnPlatform[spawnTransformNum].transform.localScale.x / 2;
+        float volumeZ = spawnPlatform[spawnTransformNum].transform.localScale.z / 2;
 
-        Vector3 pos = new Vector3(Random.Range(spawn_point.position.x - volumeX, spawn_point.position.x + volumeX), spawn_point.position.y + 1, Random.Range(spawn_point.position.z - volumeZ, spawn_point.position.z + volumeZ));
+        Vector3 pos = new Vector3(Random.Range(spawnPlatform[spawnTransformNum].position.x - volumeX, spawnPlatform[spawnTransformNum].position.x + volumeX), spawnPlatform[spawnTransformNum].position.y + 1, Random.Range(spawnPlatform[spawnTransformNum].position.z - volumeZ, spawnPlatform[spawnTransformNum].position.z + volumeZ));
         GameObject obj = Instantiate(targetPref, pos, Quaternion.identity);
         return obj;
     }
 
-
+    private void CheckAndUseTarget()
+    {
+        if (target == null)
+        {
+        Again:
+            int i = Random.Range(0, spawnPlatform.Length);
+            target = TargetSpawn(i);
+            NavMeshPath path = new NavMeshPath();
+            NavMesh.CalculatePath(transform.position, target.transform.position, NavMesh.AllAreas, path);
+            if (path.status == NavMeshPathStatus.PathComplete)
+            {
+                agent.destination = target.transform.position;
+            }
+            else
+            {
+                Destroy(target);
+                goto Again;
+            }
+        }
+    }
 }
